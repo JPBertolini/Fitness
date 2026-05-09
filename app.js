@@ -190,7 +190,9 @@ function renderLogs() {
                 if (item.type === 'weight_reps') valHtml = `${log.weight} kg<br><span class="log-reps">${log.reps} reps</span>`;
                 else if (item.type === 'distance_time') {
                     const distStr = (log.distance && log.distance > 0) ? `${log.distance} km<br>` : '';
-                    valHtml = `${distStr}<span class="log-reps">${log.duration}</span>`;
+                    let durStr = log.duration || '';
+                    if (durStr && !durStr.includes(':')) durStr += 'm'; 
+                    valHtml = `${distStr}<span class="log-reps">${durStr}</span>`;
                 }
                 else if (item.type === 'measure') valHtml = `${log.measure_value}`;
 

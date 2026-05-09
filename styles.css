@@ -234,6 +234,8 @@ body {
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 2px;
+    white-space: normal; /* Permite doble línea */
+    line-height: 1.2;
 }
 .log-value {
     font-size: 18px;
@@ -242,7 +244,7 @@ body {
     text-align: right;
 }
 .log-reps {
-    font-size: 12px;
+    font-size: 16px; /* Más grande, para mayor visibilidad */
     color: var(--text-secondary);
     font-weight: normal;
 }
