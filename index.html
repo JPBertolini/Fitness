@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fitness App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Ionicons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="app-container" id="app">
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left" onclick="goBack()">
+            <ion-icon name="chevron-back-outline" class="btn-back" id="btn-back"></ion-icon>
+            <h1 id="header-title">Calendar</h1>
+        </div>
+        <ion-icon name="menu-outline" class="header-action" onclick="toggleDrawer()"></ion-icon>
+    </header>
+
+    <!-- Side Menu (Hamburger) -->
+    <div class="drawer-overlay" onclick="toggleDrawer()"></div>
+    <div class="drawer">
+        <h2 style="margin-bottom: 20px; font-size: 18px; color: var(--text-secondary);">Menu</h2>
+        <div class="drawer-item" onclick="goHome(); toggleDrawer();">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span>Calendar</span>
+        </div>
+        <div class="drawer-item" onclick="openLog(); toggleDrawer();">
+            <ion-icon name="list-outline"></ion-icon>
+            <span>Log (All Records)</span>
+        </div>
+        <div class="drawer-item" onclick="openNewTraining(); toggleDrawer();">
+            <ion-icon name="barbell-outline"></ion-icon>
+            <span>New Training</span>
+        </div>
+        <div class="drawer-item" onclick="openMetrics(); toggleDrawer();">
+            <ion-icon name="bar-chart-outline"></ion-icon>
+            <span>Metrics</span>
+        </div>
+        <div class="drawer-item" onclick="downloadData()">
+            <ion-icon name="cloud-download-outline"></ion-icon>
+            <span>Download Data (JSON)</span>
+        </div>
+        <div class="drawer-item" onclick="document.getElementById('uploadInput').click(); toggleDrawer();">
+            <ion-icon name="cloud-upload-outline"></ion-icon>
+            <span>Upload Data (JSON)</span>
+        </div>
+        <input type="file" id="uploadInput" accept=".json" style="display: none;" onchange="uploadData(event)">
+    </div>
+
+    <!-- Screens Wrapper -->
+    <div class="screens-wrapper" id="swipe-area">
+
+        <!-- SCREEN: Calendar (Home) -->
+        <main class="screen" id="screen-home">
+            <div class="month-header">
+                <ion-icon name="chevron-back-outline" style="font-size:24px; cursor:pointer;" onclick="setMonthOffset(-1)"></ion-icon>
+                <h2 id="month-title">November 2026</h2>
+                <ion-icon name="chevron-forward-outline" style="font-size:24px; cursor:pointer;" onclick="setMonthOffset(1)"></ion-icon>
+            </div>
+            <div style="text-align:center; margin-bottom: 10px;">
+                <button class="btn-today" onclick="setMonthToday()">Today</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid">
+                <!-- Dynamically generated -->
+            </div>
+        </main>
+
+        <!-- SCREEN: Log -->
+        <main class="screen" id="screen-log">
+            <div id="log-container">
+                <!-- Dynamically generated -->
+            </div>
+        </main>
+
+        <!-- SCREEN: Training (Form) -->
+        <main class="screen" id="screen-training">
+            <div class="form-group">
+                <label>Group</label>
+                <select class="form-control" id="groupSelect" onchange="updateItemOptions()">
+                    <!-- Dynamically generated -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Item</label>
+                <select class="form-control" id="itemSelect" onchange="updateFields()">
+                    <!-- Dynamically generated -->
+                </select>
+            </div>
+
+            <!-- Dynamic Fields -->
+            <div class="row" id="weightFields" style="display: none;">
+                <div class="col form-group">
+                    <label>Weight (kg)</label>
+                    <input type="number" class="form-control input-large" id="inpWeight" placeholder="0.0">
+                </div>
+                <div class="col form-group">
+                    <label>Reps</label>
+                    <input type="number" class="form-control input-large" id="inpReps" placeholder="0">
+                </div>
+            </div>
+
+            <div class="row" id="timeDistanceFields" style="display: none;">
+                <div class="col form-group">
+                    <label>Time (mm:ss)</label>
+                    <input type="text" class="form-control input-large" id="inpDuration" placeholder="00:00">
+                </div>
+                <div class="col form-group">
+                    <label>Distance (km)</label>
+                    <input type="number" class="form-control input-large" id="inpDistance" placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="form-group" id="measureFields" style="display: none;">
+                <label>Value</label>
+                <input type="number" class="form-control input-large" id="inpMeasure" placeholder="0.0">
+            </div>
+
+            <div class="row" id="timeRangeFields" style="display: none;">
+                <div class="col form-group">
+                    <label>Start Time</label>
+                    <input type="time" class="form-control input-large" id="inpStartTime">
+                </div>
+                <div class="col form-group">
+                    <label>End Time</label>
+                    <input type="time" class="form-control input-large" id="inpEndTime">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="goBack()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveRecord()">Save</button>
+            </div>
+
+            <button class="btn btn-secondary" id="btn-delete" style="width:100%; margin-top:15px; background: rgba(255,59,48,0.1); color: var(--danger); display:none;" onclick="deleteRecord()">Delete Record</button>
+        </main>
+
+        <!-- SCREEN: New Training -->
+        <main class="screen" id="screen-new-training" style="transform: translateX(100%); z-index: 4; background: var(--bg-color);">
+            <div class="form-group">
+                <label>Group</label>
+                <select class="form-control" id="selNewGroup">
+                    <!-- Dynamically generated -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Exercise Name</label>
+                <input type="text" class="form-control" id="inpNewTrainingName" placeholder="e.g. Lateral Raises">
+            </div>
+            <div class="form-group">
+                <label>Exercise Type</label>
+                <select class="form-control" id="selNewTrainingType">
+                    <option value="weight_reps">Weight & Reps</option>
+                    <option value="distance_time">Distance & Time</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="goBack()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveNewTraining()">Save</button>
+            </div>
+        </main>
+
+        <!-- SCREEN: Metrics -->
+        <main class="screen" id="screen-metrics" style="transform: translateX(100%); z-index: 5; background: var(--bg-color);">
+            <div class="form-group">
+                <label>Group</label>
+                <select class="form-control" id="metricGroupSelect" onchange="updateMetricItemOptions()">
+                    <!-- Dynamically generated -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Item</label>
+                <select class="form-control" id="metricItemSelect" onchange="renderChart()">
+                    <!-- Dynamically generated -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Timeframe</label>
+                <select class="form-control" id="metricTimeframeSelect" onchange="renderChart()">
+                    <option value="days">Days</option>
+                    <option value="weeks">Weeks</option>
+                    <option value="months">Months</option>
+                    <option value="years">Years</option>
+                </select>
+            </div>
+            
+            <div style="margin-top: 30px; position: relative; height: 350px; width: 100%;">
+                <canvas id="metricsChart"></canvas>
+            </div>
+            
+            <div style="text-align:center; color:var(--text-secondary); margin-top:20px; font-size:12px;" id="metricSummary">
+                <!-- Sum/Avg label -->
+            </div>
+        </main>
+
+    </div>
+
+    <!-- FAB for Log View -->
+    <div class="fab" id="fab-add" onclick="openTraining()">
+        <ion-icon name="add"></ion-icon>
+    </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
