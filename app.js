@@ -188,7 +188,10 @@ function renderLogs() {
                 const { log, item } = r;
                 let valHtml = '';
                 if (item.type === 'weight_reps') valHtml = `${log.weight} kg<br><span class="log-reps">${log.reps} reps</span>`;
-                else if (item.type === 'distance_time') valHtml = `${log.distance} km<br><span class="log-reps">${log.duration}</span>`;
+                else if (item.type === 'distance_time') {
+                    const distStr = (log.distance && log.distance > 0) ? `${log.distance} km<br>` : '';
+                    valHtml = `${distStr}<span class="log-reps">${log.duration}</span>`;
+                }
                 else if (item.type === 'measure') valHtml = `${log.measure_value}`;
 
                 html += `
@@ -365,11 +368,60 @@ function openNewTraining() {
         const option = document.createElement('option');
         option.value = g.id; option.text = g.name; select.appendChild(option);
     });
+
+    const datalist = document.getElementById('existingExercises');
+    datalist.innerHTML = '';
+    data.items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.name;
+        datalist.appendChild(option);
+    });
+
     document.getElementById('inpNewTrainingName').value = '';
+    document.getElementById('btn-delete-exercise').style.display = 'none';
+
     document.getElementById('screen-log').style.transform = 'translateX(-30%)';
     document.getElementById('screen-new-training').style.transform = 'translateX(0)';
     setHeader('New Training', true);
     state.currentView = 'new-training';
+}
+
+function deleteExercise() {
+    const name = document.getElementById('inpNewTrainingName').value.trim();
+    if (!name) return;
+
+    const data = getData();
+    const item = data.items.find(i => i.name.toLowerCase() === name.toLowerCase());
+    if (!item) return;
+
+    const logsCount = data.logs.filter(l => parseInt(l.item_id) === item.id).length;
+    let confirmMsg = `Are you sure you want to delete the exercise "${item.name}"?`;
+    if (logsCount > 0) {
+        confirmMsg = `WARNING: The exercise "${item.name}" has ${logsCount} records in your history. If you delete it, ALL these records will be permanently removed. Proceed?`;
+    }
+
+    if (confirm(confirmMsg)) {
+        data.items = data.items.filter(i => i.id !== item.id);
+        data.logs = data.logs.filter(l => parseInt(l.item_id) !== item.id);
+        saveData(data);
+        alert("Exercise and its records deleted.");
+        goBack();
+    }
+}
+
+function checkExistingExercise() {
+    const name = document.getElementById('inpNewTrainingName').value.trim().toLowerCase();
+    const data = getData();
+    const item = data.items.find(i => i.name.toLowerCase() === name);
+    const btnDelete = document.getElementById('btn-delete-exercise');
+    
+    if (item) {
+        document.getElementById('selNewGroup').value = item.group_id;
+        document.getElementById('selNewTrainingType').value = item.type;
+        btnDelete.style.display = 'block';
+    } else {
+        btnDelete.style.display = 'none';
+    }
 }
 
 function saveNewTraining() {

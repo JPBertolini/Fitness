@@ -154,7 +154,10 @@
             </div>
             <div class="form-group">
                 <label>Exercise Name</label>
-                <input type="text" class="form-control" id="inpNewTrainingName" placeholder="e.g. Lateral Raises">
+                <input type="text" class="form-control" id="inpNewTrainingName" placeholder="e.g. Lateral Raises" list="existingExercises" oninput="checkExistingExercise()">
+                <datalist id="existingExercises">
+                    <!-- Dynamically populated -->
+                </datalist>
             </div>
             <div class="form-group">
                 <label>Exercise Type</label>
@@ -167,6 +170,7 @@
                 <button class="btn btn-secondary" onclick="goBack()">Cancel</button>
                 <button class="btn btn-primary" onclick="saveNewTraining()">Save</button>
             </div>
+            <button class="btn btn-secondary" id="btn-delete-exercise" style="width:100%; margin-top:15px; background: rgba(255,59,48,0.1); color: var(--danger); display:none;" onclick="deleteExercise()">Delete Exercise</button>
         </main>
 
         <!-- SCREEN: Metrics -->
