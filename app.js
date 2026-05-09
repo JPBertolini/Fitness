@@ -156,8 +156,11 @@ function renderLogs() {
 
     let logs = data.logs;
     
-    // Sort descending by created_at (timestamp) or date
-    logs.sort((a, b) => b.timestamp - a.timestamp);
+    // Sort: Date descending, but within same date, timestamp ascending (FIFO)
+    logs.sort((a, b) => {
+        if (b.date !== a.date) return b.date.localeCompare(a.date);
+        return a.timestamp - b.timestamp;
+    });
 
     // Filter by selected date if not showing all
     if (state.selectedDate) {
@@ -238,7 +241,13 @@ function renderLogs() {
                 }
 
                 html += `
-                <div class="log-card" onclick="openTraining('${log.id}')">
+                <div class="log-card" 
+                     onclick="openTraining('${log.id}')"
+                     onmousedown="startLongPress('${log.id}')" 
+                     onmouseup="cancelLongPress()" 
+                     onmouseleave="cancelLongPress()"
+                     ontouchstart="startLongPress('${log.id}')" 
+                     ontouchend="cancelLongPress()">
                     <div class="log-info">
                         <h3>${item.name}</h3>
                     </div>
@@ -356,6 +365,39 @@ function saveRecord() {
 
     saveData(data);
     goBack();
+}
+
+// --- CLONE LOGIC ---
+let longPressTimer;
+function startLongPress(logId) {
+    longPressTimer = setTimeout(() => {
+        cloneRecord(logId);
+    }, 600); // 600ms for long press
+}
+
+function cancelLongPress() {
+    clearTimeout(longPressTimer);
+}
+
+function cloneRecord(logId) {
+    const data = getData();
+    const original = data.logs.find(l => l.id === logId);
+    if (!original) return;
+
+    const item = data.items.find(i => i.id === parseInt(original.item_id));
+    const itemName = item ? item.name : 'Exercise';
+
+    if (confirm(`Do you want to clone "${itemName}"?`)) {
+        const cloned = {
+            ...original,
+            id: generateUUID(),
+            timestamp: Date.now() // Newer timestamp so it goes to the bottom of the day
+        };
+        data.logs.push(cloned);
+        saveData(data);
+        renderLogs();
+        renderCalendar();
+    }
 }
 
 function deleteRecord() {
@@ -735,6 +777,39 @@ document.getElementById('swipe-area').addEventListener('touchend', e => {
 function handleSwipe() {
     if (touchendX - touchstartX > 100) { 
         goBack();
+    }
+}
+
+// --- CLONE LOGIC ---
+let longPressTimer;
+function startLongPress(logId) {
+    longPressTimer = setTimeout(() => {
+        cloneRecord(logId);
+    }, 800); // 800ms for long press to avoid accidental triggers
+}
+
+function cancelLongPress() {
+    clearTimeout(longPressTimer);
+}
+
+function cloneRecord(logId) {
+    const data = getData();
+    const original = data.logs.find(l => l.id === logId);
+    if (!original) return;
+
+    const item = data.items.find(i => i.id === parseInt(original.item_id));
+    const itemName = item ? item.name : 'Exercise';
+
+    if (confirm(`Do you want to clone "${itemName}" with its current values?`)) {
+        const cloned = {
+            ...original,
+            id: generateUUID(),
+            timestamp: Date.now() // Newer timestamp so it goes to the bottom of the day
+        };
+        data.logs.push(cloned);
+        saveData(data);
+        renderLogs();
+        renderCalendar();
     }
 }
 
