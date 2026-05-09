@@ -154,12 +154,14 @@ function renderLogs() {
     const container = document.getElementById('log-container');
     container.innerHTML = '';
 
-    let logs = data.logs;
+    let logs = data.logs || [];
     
     // Sort: Date descending, but within same date, timestamp ascending (FIFO)
     logs.sort((a, b) => {
-        if (b.date !== a.date) return b.date.localeCompare(a.date);
-        return a.timestamp - b.timestamp;
+        const dateA = a.date || "";
+        const dateB = b.date || "";
+        if (dateB !== dateA) return dateB.localeCompare(dateA);
+        return (a.timestamp || 0) - (b.timestamp || 0);
     });
 
     // Filter by selected date if not showing all
