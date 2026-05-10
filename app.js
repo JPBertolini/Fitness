@@ -197,8 +197,13 @@ function renderLogs() {
                 else if (item.type === 'measure') valHtml = `${log.measure_value}`;
 
                 html += `
-                <div class="log-card" onclick="openTraining('${log.id}')" onmousedown="startLongPress('${log.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()" ontouchstart="startLongPress('${log.id}')" ontouchend="cancelLongPress()">
-                    <div class="log-info"><h3>${item.name}</h3></div>
+                <div class="log-card" onclick="openTraining('${log.id}')">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="clone-icon" onclick="event.stopPropagation(); cloneRecord('${log.id}')">
+                            <ion-icon name="ellipse-outline"></ion-icon>
+                        </div>
+                        <div class="log-info"><h3>${item.name}</h3></div>
+                    </div>
                     <div class="log-value">${valHtml}</div>
                 </div>`;
             });
@@ -292,9 +297,6 @@ function deleteRecord() {
 }
 
 // --- CLONE LOGIC ---
-let longPressTimer;
-function startLongPress(logId) { longPressTimer = setTimeout(() => cloneRecord(logId), 800); }
-function cancelLongPress() { clearTimeout(longPressTimer); }
 function cloneRecord(logId) {
     const data = getData();
     const original = data.logs.find(l => l.id === logId);
@@ -493,6 +495,27 @@ function updateMetricItemOptions() {
     data.items.filter(i => i.group_id === groupId).forEach(i => {
         const o = document.createElement('option'); o.value = i.id; o.text = i.name; o.setAttribute('data-type', i.type); select.appendChild(o);
     });
+    updateYAxisOptions();
+}
+
+function updateYAxisOptions() {
+    const select = document.getElementById('metricItemSelect');
+    if (!select.value) return renderChart();
+    const selectedType = select.options[select.selectedIndex]?.getAttribute('data-type');
+    const yAxisGroup = document.getElementById('metricYAxisGroup');
+    const yAxisSelect = document.getElementById('metricYAxisSelect');
+    yAxisSelect.innerHTML = '';
+
+    if (selectedType === 'weight_reps') {
+        yAxisGroup.style.display = 'block';
+        yAxisSelect.innerHTML = '<option value="weight">Weight</option><option value="volume">Volume (Weight x Reps)</option><option value="reps">Reps</option>';
+    } else if (selectedType === 'distance_time') {
+        yAxisGroup.style.display = 'block';
+        yAxisSelect.innerHTML = '<option value="distance">Distance</option><option value="time">Time</option>';
+    } else {
+        yAxisGroup.style.display = 'none';
+        yAxisSelect.innerHTML = '<option value="value">Value</option>';
+    }
     renderChart();
 }
 
@@ -502,6 +525,9 @@ function renderChart() {
     if (!itemSelect.value) return;
     const item = data.items.find(i => i.id === parseInt(itemSelect.value));
     const timeframe = document.getElementById('metricTimeframeSelect').value;
+    const aggregation = document.getElementById('metricAggregationSelect').value;
+    const yAxisValue = document.getElementById('metricYAxisSelect') ? document.getElementById('metricYAxisSelect').value : 'value';
+
     let logs = data.logs.filter(l => parseInt(l.item_id) === item.id);
     logs.sort((a,b) => new Date(a.date) - new Date(b.date));
 
@@ -509,7 +535,13 @@ function renderChart() {
     logs.forEach(l => {
         let key = l.date;
         const d = new Date(l.date + 'T12:00:00');
-        if (timeframe === 'months') key = d.getFullYear() + '-' + (d.getMonth()+1);
+        if (timeframe === 'weeks') {
+            const firstDayOfYear = new Date(d.getFullYear(), 0, 1);
+            const pastDaysOfYear = (d - firstDayOfYear) / 86400000;
+            const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+            key = d.getFullYear() + '-W' + weekNumber;
+        }
+        if (timeframe === 'months') key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0');
         if (timeframe === 'years') key = d.getFullYear();
         if (!grouped[key]) grouped[key] = [];
         grouped[key].push(l);
@@ -518,17 +550,57 @@ function renderChart() {
     const labels = Object.keys(grouped);
     const values = labels.map(key => {
         const arr = grouped[key];
-        if (item.type === 'weight_reps') return arr.reduce((s, l) => s + (l.weight * l.reps), 0);
-        if (item.type === 'distance_time') return arr.reduce((s, l) => s + l.distance, 0);
-        if (item.type === 'measure') return arr.reduce((s, l) => s + l.measure_value, 0) / arr.length;
-        return 0;
+        let val = 0;
+        
+        arr.forEach(l => {
+            if (item.type === 'weight_reps') {
+                if (yAxisValue === 'weight') val += l.weight || 0;
+                else if (yAxisValue === 'reps') val += l.reps || 0;
+                else val += (l.weight || 0) * (l.reps || 0);
+            } else if (item.type === 'distance_time') {
+                if (yAxisValue === 'distance') val += l.distance || 0;
+                else {
+                    let mins = 0;
+                    if (l.duration) {
+                        const parts = l.duration.split(':');
+                        if (parts.length === 2) mins = parseInt(parts[0]) + parseInt(parts[1])/60;
+                        else mins = parseFloat(l.duration);
+                    }
+                    val += mins;
+                }
+            } else if (item.type === 'measure') {
+                val += l.measure_value || 0;
+            } else if (item.type === 'time_range') {
+                if (l.start_time && l.end_time) {
+                    const [h1, m1] = l.start_time.split(':').map(Number);
+                    const [h2, m2] = l.end_time.split(':').map(Number);
+                    let totalMins = (h2 * 60 + m2) - (h1 * 60 + m1);
+                    if (totalMins < 0) totalMins += 24 * 60;
+                    val += totalMins;
+                }
+            }
+        });
+
+        if (aggregation === 'average' && arr.length > 0) val = val / arr.length;
+        return val;
     });
 
     const ctx = document.getElementById('metricsChart').getContext('2d');
     if (chartInstance) chartInstance.destroy();
+    
+    let label = item.name;
+    if (yAxisValue === 'weight') label += ' (Weight)';
+    else if (yAxisValue === 'reps') label += ' (Reps)';
+    else if (yAxisValue === 'volume') label += ' (Volume)';
+    else if (yAxisValue === 'distance') label += ' (Distance)';
+    else if (yAxisValue === 'time') label += ' (Time)';
+
+    if (aggregation === 'average') label += ' - Avg';
+    else label += ' - Total';
+
     chartInstance = new Chart(ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ label: item.name, data: values, backgroundColor: '#00e5ff' }] },
+        data: { labels, datasets: [{ label: label, data: values, backgroundColor: '#00e5ff' }] },
         options: { responsive: true, maintainAspectRatio: false }
     });
 }

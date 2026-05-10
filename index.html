@@ -183,7 +183,7 @@
             </div>
             <div class="form-group">
                 <label>Item</label>
-                <select class="form-control" id="metricItemSelect" onchange="renderChart()">
+                <select class="form-control" id="metricItemSelect" onchange="updateYAxisOptions()">
                     <!-- Dynamically generated -->
                 </select>
             </div>
@@ -194,6 +194,18 @@
                     <option value="weeks">Weeks</option>
                     <option value="months">Months</option>
                     <option value="years">Years</option>
+                </select>
+            </div>
+            <div class="form-group" id="metricYAxisGroup" style="display: none;">
+                <label>Y Axis Value</label>
+                <select class="form-control" id="metricYAxisSelect" onchange="renderChart()">
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Aggregation</label>
+                <select class="form-control" id="metricAggregationSelect" onchange="renderChart()">
+                    <option value="total">Total Sum</option>
+                    <option value="average">Average</option>
                 </select>
             </div>
             

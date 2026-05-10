@@ -389,3 +389,20 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     font-size: 24px;
     color: var(--accent-color);
 }
+
+/* Clone Icon */
+.clone-icon {
+    font-size: 24px;
+    color: var(--text-secondary);
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.clone-icon:hover, .clone-icon:active {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--accent-color);
+}
