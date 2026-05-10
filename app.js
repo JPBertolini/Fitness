@@ -198,12 +198,7 @@ function renderLogs() {
 
                 html += `
                 <div class="log-card" onclick="openTraining('${log.id}')">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div class="clone-icon" onclick="event.stopPropagation(); cloneRecord('${log.id}')">
-                            <ion-icon name="ellipse-outline"></ion-icon>
-                        </div>
-                        <div class="log-info"><h3>${item.name}</h3></div>
-                    </div>
+                    <div class="log-info"><h3>${item.name}</h3></div>
                     <div class="log-value">${valHtml}</div>
                 </div>`;
             });
@@ -340,6 +335,7 @@ function openTraining(logId = null) {
     state.editingLogId = logId;
     clearForm();
     const btnDelete = document.getElementById('btn-delete');
+    const btnClone = document.getElementById('btn-clone');
     if (logId) {
         const data = getData();
         const log = data.logs.find(l => l.id === logId);
@@ -353,15 +349,31 @@ function openTraining(logId = null) {
             else if (item.type === 'time_range') { document.getElementById('inpStartTime').value = log.start_time; document.getElementById('inpEndTime').value = log.end_time; }
         }
         btnDelete.style.display = 'block';
+        if (btnClone) btnClone.style.display = 'block';
     } else {
         populateGroups();
         btnDelete.style.display = 'none';
+        if (btnClone) btnClone.style.display = 'none';
     }
     document.getElementById('screen-log').style.transform = 'translateX(-30%)';
     document.getElementById('screen-training').style.transform = 'translateX(0)';
     document.getElementById('fab-add').style.display = 'none';
     setHeader(logId ? 'Edit Record' : 'New Record', true);
     state.currentView = 'training';
+}
+
+function cloneCurrentRecord() {
+    if (!state.editingLogId) return;
+    const data = getData();
+    const original = data.logs.find(l => l.id === state.editingLogId);
+    if (!original) return;
+    const item = data.items.find(i => i.id === parseInt(original.item_id));
+    if (confirm(`Clone "${item ? item.name : 'Exercise'}"?`)) {
+        const cloned = { ...original, id: generateUUID(), timestamp: Date.now() };
+        data.logs.push(cloned);
+        saveData(data);
+        goBack();
+    }
 }
 
 function openNewTraining() {
