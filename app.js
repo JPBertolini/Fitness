@@ -5,7 +5,9 @@ let state = {
     currentView: 'home',
     selectedDate: null, 
     editingLogId: null,
-    currentMonth: new Date()
+    currentMonth: new Date(),
+    lastGroupId: null,
+    lastItemId: null
 };
 
 function generateUUID() {
@@ -277,6 +279,10 @@ function saveRecord() {
         if (idx > -1) { log.date = data.logs[idx].date; log.timestamp = data.logs[idx].timestamp; data.logs[idx] = log; }
     } else { data.logs.push(log); }
 
+    // Remember last selection
+    state.lastGroupId = parseInt(document.getElementById('groupSelect').value);
+    state.lastItemId = parseInt(document.getElementById('itemSelect').value);
+
     saveData(data);
     goBack();
 }
@@ -351,7 +357,13 @@ function openTraining(logId = null) {
         btnDelete.style.display = 'block';
         if (btnClone) btnClone.style.display = 'block';
     } else {
-        populateGroups();
+        // Use last selection if available
+        if (state.lastGroupId) {
+            populateGroups(state.lastGroupId);
+            if (state.lastItemId) updateItemOptions(state.lastItemId);
+        } else {
+            populateGroups();
+        }
         btnDelete.style.display = 'none';
         if (btnClone) btnClone.style.display = 'none';
     }
@@ -593,8 +605,21 @@ function renderChart() {
             }
         });
 
-        if (aggregation === 'average' && arr.length > 0) val = val / arr.length;
-        return val;
+        if (aggregation === 'average' && arr.length > 0) {
+            // Weighted average for weight_reps: sum(weight*reps) / sum(reps)
+            if (item.type === 'weight_reps' && (yAxisValue === 'volume' || yAxisValue === 'weight')) {
+                const totalReps = arr.reduce((s, l) => s + (l.reps || 0), 0);
+                if (totalReps > 0) {
+                    const totalWeightedSum = arr.reduce((s, l) => s + (l.weight || 0) * (l.reps || 0), 0);
+                    val = totalWeightedSum / totalReps;
+                } else {
+                    val = 0;
+                }
+            } else {
+                val = val / arr.length;
+            }
+        }
+        return parseFloat(val.toFixed(2));
     });
 
     const ctx = document.getElementById('metricsChart').getContext('2d');
