@@ -377,15 +377,34 @@ function openTraining(logId = null) {
 function cloneCurrentRecord() {
     if (!state.editingLogId) return;
     const data = getData();
-    const original = data.logs.find(l => l.id === state.editingLogId);
-    if (!original) return;
-    const item = data.items.find(i => i.id === parseInt(original.item_id));
-    if (confirm(`Clone "${item ? item.name : 'Exercise'}"?`)) {
-        const cloned = { ...original, id: generateUUID(), timestamp: Date.now() };
-        data.logs.push(cloned);
-        saveData(data);
-        goBack();
+    const itemId = parseInt(document.getElementById('itemSelect').value);
+    const item = data.items.find(i => i.id === itemId);
+    const type = item.type;
+    
+    // Create new log using current FORM values (not original ones)
+    let newLog = {
+        id: generateUUID(),
+        item_id: itemId,
+        date: state.selectedDate || getLocalDateStr(),
+        timestamp: Date.now()
+    };
+
+    if (type === 'weight_reps') {
+        newLog.weight = parseFloat(document.getElementById('inpWeight').value) || 0;
+        newLog.reps = parseInt(document.getElementById('inpReps').value) || 0;
+    } else if (type === 'distance_time') {
+        newLog.duration = document.getElementById('inpDuration').value || '';
+        newLog.distance = parseFloat(document.getElementById('inpDistance').value) || 0;
+    } else if (type === 'measure') {
+        newLog.measure_value = parseFloat(document.getElementById('inpMeasure').value) || 0;
+    } else if (type === 'time_range') {
+        newLog.start_time = document.getElementById('inpStartTime').value || '';
+        newLog.end_time = document.getElementById('inpEndTime').value || '';
     }
+
+    data.logs.push(newLog);
+    saveData(data);
+    goBack();
 }
 
 function openNewTraining() {
