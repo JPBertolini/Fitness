@@ -550,8 +550,8 @@ function updateYAxisOptions() {
     yAxisSelect.innerHTML = '';
 
     if (selectedType === 'weight_reps') {
-        yAxisGroup.style.display = 'block';
-        yAxisSelect.innerHTML = '<option value="weight">Weight</option><option value="volume">Volume (Weight x Reps)</option><option value="reps">Reps</option>';
+        yAxisGroup.style.display = 'none';
+        yAxisSelect.innerHTML = '<option value="volume">Volume (Weight x Reps)</option>';
     } else if (selectedType === 'distance_time') {
         yAxisGroup.style.display = 'block';
         yAxisSelect.innerHTML = '<option value="distance">Distance</option><option value="time">Time</option>';
@@ -597,9 +597,7 @@ function renderChart() {
         
         arr.forEach(l => {
             if (item.type === 'weight_reps') {
-                if (yAxisValue === 'weight') val += l.weight || 0;
-                else if (yAxisValue === 'reps') val += l.reps || 0;
-                else val += (l.weight || 0) * (l.reps || 0);
+                val += (l.weight || 0) * (l.reps || 0);
             } else if (item.type === 'distance_time') {
                 if (yAxisValue === 'distance') val += l.distance || 0;
                 else {
@@ -626,7 +624,7 @@ function renderChart() {
 
         if (aggregation === 'average' && arr.length > 0) {
             // Weighted average for weight_reps: sum(weight*reps) / sum(reps)
-            if (item.type === 'weight_reps' && (yAxisValue === 'volume' || yAxisValue === 'weight')) {
+            if (item.type === 'weight_reps') {
                 const totalReps = arr.reduce((s, l) => s + (l.reps || 0), 0);
                 if (totalReps > 0) {
                     const totalWeightedSum = arr.reduce((s, l) => s + (l.weight || 0) * (l.reps || 0), 0);
