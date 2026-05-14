@@ -109,9 +109,77 @@ function renderCalendar() {
 
             grid.innerHTML += `<div class="${classes.join(' ')}" onclick="openLog('${dateStr}')">${innerHtml}</div>`;
         }
+        renderMonthlyStats();
     } catch (e) {
         console.error("Calendar Render Error", e);
     }
+}
+
+function renderMonthlyStats() {
+    const data = getData();
+    const logs = data.logs || [];
+    const items = data.items || [];
+
+    // Build a map: "YYYY-MM" -> { time, weight, distance }
+    const monthlyTotals = {};
+
+    logs.forEach(log => {
+        if (!log.date) return;
+        const monthKey = log.date.substring(0, 7); // "YYYY-MM"
+        if (!monthlyTotals[monthKey]) monthlyTotals[monthKey] = { time: 0, weight: 0, distance: 0 };
+
+        const item = items.find(i => i.id === parseInt(log.item_id));
+        if (!item) return;
+
+        if (item.type === 'time_range' && log.start_time && log.end_time) {
+            const [h1, m1] = log.start_time.split(':').map(Number);
+            const [h2, m2] = log.end_time.split(':').map(Number);
+            let totalMins = (h2 * 60 + m2) - (h1 * 60 + m1);
+            if (totalMins < 0) totalMins += 24 * 60;
+            monthlyTotals[monthKey].time += totalMins / 60; // hours
+        } else if (item.type === 'weight_reps') {
+            monthlyTotals[monthKey].weight += (log.weight || 0) * (log.reps || 0);
+        } else if (item.type === 'distance_time') {
+            monthlyTotals[monthKey].distance += log.distance || 0;
+        }
+    });
+
+    // Find historical max for each metric
+    let maxTime = 0, maxWeight = 0, maxDistance = 0;
+    Object.values(monthlyTotals).forEach(m => {
+        if (m.time > maxTime) maxTime = m.time;
+        if (m.weight > maxWeight) maxWeight = m.weight;
+        if (m.distance > maxDistance) maxDistance = m.distance;
+    });
+
+    // Current displayed month
+    const year = state.currentMonth.getFullYear();
+    const month = state.currentMonth.getMonth();
+    const currentKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const current = monthlyTotals[currentKey] || { time: 0, weight: 0, distance: 0 };
+
+    // Ensure max is at least current value
+    if (current.time > maxTime) maxTime = current.time;
+    if (current.weight > maxWeight) maxWeight = current.weight;
+    if (current.distance > maxDistance) maxDistance = current.distance;
+
+    // Calculate percentages
+    const pctTime = maxTime > 0 ? (current.time / maxTime) * 100 : 0;
+    const pctWeight = maxWeight > 0 ? (current.weight / maxWeight) * 100 : 0;
+    const pctDistance = maxDistance > 0 ? (current.distance / maxDistance) * 100 : 0;
+
+    // Render bars
+    const barTime = document.getElementById('bar-time');
+    const barWeight = document.getElementById('bar-weight');
+    const barDistance = document.getElementById('bar-distance');
+
+    barTime.style.width = `${Math.max(pctTime, 8)}%`;
+    barWeight.style.width = `${Math.max(pctWeight, 8)}%`;
+    barDistance.style.width = `${Math.max(pctDistance, 8)}%`;
+
+    document.getElementById('bar-time-label').textContent = `${Math.round(current.time)} h`;
+    document.getElementById('bar-weight-label').textContent = `${Math.round(current.weight)} kg`;
+    document.getElementById('bar-distance-label').textContent = `${Math.round(current.distance)} km`;
 }
 
 function calculateTimeDuration(startTime, endTime) {
