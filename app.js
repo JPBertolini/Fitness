@@ -178,7 +178,7 @@ function renderMonthlyStats() {
     barDistance.style.width = `${Math.max(pctDistance, 8)}%`;
 
     document.getElementById('bar-time-label').textContent = `${Math.round(current.time)} h`;
-    document.getElementById('bar-weight-label').textContent = `${Math.round(current.weight)} kg`;
+    document.getElementById('bar-weight-label').textContent = `${Math.round(current.weight / 1000)} t`;
     document.getElementById('bar-distance-label').textContent = `${Math.round(current.distance)} km`;
 }
 
@@ -209,6 +209,25 @@ function renderLogs() {
 
     if (state.selectedDate) {
         logs = logs.filter(log => log.date === state.selectedDate);
+    } else {
+        const groupSelect = document.getElementById('logFilterGroup');
+        const itemSelect = document.getElementById('logFilterItem');
+        const groupVal = groupSelect ? groupSelect.value : 'all';
+        const itemVal = itemSelect ? itemSelect.value : 'all';
+        
+        if (groupVal !== 'all' || itemVal !== 'all') {
+            logs = logs.filter(log => {
+                const item = data.items.find(i => i.id === parseInt(log.item_id));
+                if (!item) return false;
+                
+                if (itemVal !== 'all') {
+                    return parseInt(log.item_id) === parseInt(itemVal);
+                } else if (groupVal !== 'all') {
+                    return item.group_id === parseInt(groupVal);
+                }
+                return true;
+            });
+        }
     }
 
     if (logs.length === 0) {
@@ -308,12 +327,40 @@ function updateItemOptions(selectedItemId = null) {
     updateFields();
 }
 
+function preloadLastWeightValues(itemId) {
+    if (state.editingLogId) return;
+    const data = getData();
+    const logs = data.logs || [];
+    
+    const sortedLogs = [...logs].sort((a, b) => {
+        const da = a.date || "";
+        const db = b.date || "";
+        if (db !== da) return db.localeCompare(da);
+        return (b.timestamp || 0) - (a.timestamp || 0);
+    });
+
+    const lastLog = sortedLogs.find(l => parseInt(l.item_id) === parseInt(itemId));
+    if (lastLog) {
+        const item = data.items.find(i => i.id === parseInt(itemId));
+        if (item && item.type === 'weight_reps') {
+            document.getElementById('inpWeight').value = lastLog.weight !== undefined ? lastLog.weight : '';
+            document.getElementById('inpReps').value = lastLog.reps !== undefined ? lastLog.reps : '';
+        }
+    } else {
+        document.getElementById('inpWeight').value = '';
+        document.getElementById('inpReps').value = '';
+    }
+}
+
 function updateFields() {
     const select = document.getElementById('itemSelect');
     if (select.options.length === 0) return;
     ['weightFields', 'timeDistanceFields', 'measureFields', 'timeRangeFields'].forEach(id => document.getElementById(id).style.display = 'none');
     const type = select.options[select.selectedIndex].getAttribute('data-type');
-    if(type === 'weight_reps') document.getElementById('weightFields').style.display = 'flex';
+    if(type === 'weight_reps') {
+        document.getElementById('weightFields').style.display = 'flex';
+        preloadLastWeightValues(select.value);
+    }
     if(type === 'distance_time') document.getElementById('timeDistanceFields').style.display = 'flex';
     if(type === 'measure') document.getElementById('measureFields').style.display = 'block';
     if(type === 'time_range') document.getElementById('timeRangeFields').style.display = 'flex';
@@ -397,12 +444,60 @@ function goHome() {
 
 function openLog(dateStr = null) {
     state.selectedDate = dateStr;
+    
+    const filtersDiv = document.getElementById('log-filters');
+    if (filtersDiv) {
+        if (dateStr) {
+            filtersDiv.style.display = 'none';
+        } else {
+            filtersDiv.style.display = 'block';
+            populateLogFilters();
+        }
+    }
+    
     renderLogs();
     document.getElementById('screen-home').style.transform = 'translateX(-30%)';
     document.getElementById('screen-log').style.transform = 'translateX(0)';
     document.getElementById('fab-add').style.display = 'flex';
     setHeader(dateStr ? 'Training Log' : 'All Records', true);
     state.currentView = 'log';
+}
+
+function populateLogFilters() {
+    const data = getData();
+    const groupSelect = document.getElementById('logFilterGroup');
+    if (!groupSelect) return;
+    groupSelect.innerHTML = '<option value="all">All Groups</option>';
+    data.groups.forEach(g => {
+        const option = document.createElement('option');
+        option.value = g.id;
+        option.text = g.name;
+        groupSelect.appendChild(option);
+    });
+    updateLogFilterItems();
+}
+
+function updateLogFilterItems() {
+    const data = getData();
+    const groupSelect = document.getElementById('logFilterGroup');
+    const itemSelect = document.getElementById('logFilterItem');
+    if (!groupSelect || !itemSelect) return;
+    
+    const groupIdVal = groupSelect.value;
+    itemSelect.innerHTML = '<option value="all">All Exercises</option>';
+    
+    let itemsFiltered = data.items || [];
+    if (groupIdVal !== 'all') {
+        const groupId = parseInt(groupIdVal);
+        itemsFiltered = itemsFiltered.filter(i => i.group_id === groupId);
+    }
+    
+    itemsFiltered.forEach(i => {
+        const option = document.createElement('option');
+        option.value = i.id;
+        option.text = i.name;
+        itemSelect.appendChild(option);
+    });
 }
 
 function openTraining(logId = null) {

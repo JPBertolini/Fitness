@@ -35,7 +35,7 @@
         </div>
         <div class="drawer-item" onclick="openLog(); toggleDrawer();">
             <ion-icon name="list-outline"></ion-icon>
-            <span>Log (All Records)</span>
+            <span>Log All Exercises</span>
         </div>
         <div class="drawer-item" onclick="openNewTraining(); toggleDrawer();">
             <ion-icon name="barbell-outline"></ion-icon>
@@ -95,6 +95,22 @@
 
         <!-- SCREEN: Log -->
         <main class="screen" id="screen-log">
+            <div id="log-filters" style="display: none; margin-bottom: 20px; padding: 16px; background: var(--surface-color); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                <div class="row">
+                    <div class="col form-group" style="margin-bottom: 0; margin-top: 0;">
+                        <label style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px; display: block; font-weight: 600;">Group</label>
+                        <select class="form-control" id="logFilterGroup" onchange="updateLogFilterItems(); renderLogs();" style="padding: 12px; font-size: 14px; height: auto;">
+                            <!-- Dynamically generated -->
+                        </select>
+                    </div>
+                    <div class="col form-group" style="margin-bottom: 0; margin-top: 0;">
+                        <label style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px; display: block; font-weight: 600;">Exercise</label>
+                        <select class="form-control" id="logFilterItem" onchange="renderLogs();" style="padding: 12px; font-size: 14px; height: auto;">
+                            <!-- Dynamically generated -->
+                        </select>
+                    </div>
+                </div>
+            </div>
             <div id="log-container">
                 <!-- Dynamically generated -->
             </div>
