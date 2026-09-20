@@ -658,11 +658,32 @@ function goBack() {
     }
 }
 
-function downloadData() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(getData(), null, 2));
-    const dl = document.createElement('a');
-    dl.setAttribute("href", dataStr); dl.setAttribute("download", "fitness_data.json"); dl.click();
+async function downloadData() {
     toggleDrawer();
+    const json = JSON.stringify(getData(), null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const filename = 'fitness_data.json';
+    const file = new File([blob], filename, { type: 'application/json' });
+
+    // iOS/Android PWA: Share sheet (Save to Files, AirDrop, etc.)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file], title: 'Fitness Data' });
+            return;
+        } catch (err) {
+            if (err && err.name === 'AbortError') return;
+        }
+    }
+
+    // Desktop / browsers that support download attribute
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
 function uploadData(event) {
