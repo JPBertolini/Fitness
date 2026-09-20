@@ -662,7 +662,10 @@ async function downloadData() {
     toggleDrawer();
     const json = JSON.stringify(getData(), null, 2);
     const blob = new Blob([json], { type: 'application/json' });
-    const filename = 'fitness_data.json';
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const filename = `fitness_data_${stamp}.json`;
     const file = new File([blob], filename, { type: 'application/json' });
 
     // iOS/Android PWA: Share sheet (Save to Files, AirDrop, etc.)
